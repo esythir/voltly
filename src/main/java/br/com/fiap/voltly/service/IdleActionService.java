@@ -18,8 +18,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class IdleActionService {
 
-    private final SensorRepository sensorRepository;
-    private final EnergyReadingRepository readingRepository;
+    private final SensorRepository          sensorRepository;
+    private final EnergyReadingRepository   readingRepository;
     private final AutomaticActionRepository actionRepository;
 
     @Transactional

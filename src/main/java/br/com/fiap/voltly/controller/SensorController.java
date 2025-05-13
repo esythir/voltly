@@ -10,11 +10,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/sensors")
@@ -23,45 +25,65 @@ public class SensorController {
 
     private final SensorService service;
 
+    // ADMIN
+
     @PostMapping
-    public ResponseEntity<SensorDto> create(@Valid @RequestBody SensorCreateDto dto) {
-        var entity = dto.toModel();
-        var saved  = service.save(entity);
-        URI uri = URI.create("/api/sensors/" + saved.getId());
+    @PreAuthorize("hasRole('ADMIN') || @equipmentService.isOwner(#dto.equipmentId(), principal)")
+    public ResponseEntity<SensorDto> createSensor(@Valid @RequestBody SensorCreateDto dto,
+                                            @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
+        Sensor saved = service.save(dto.toModel());
         return ResponseEntity
-                .created(uri)
+                .created(URI.create("/api/sensors/" + saved.getId()))
                 .body(SensorDto.from(saved));
     }
 
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<SensorDto>> listAllPageable(Pageable pageable) {
+        return ResponseEntity.ok(
+                DTOMapper.mapPage(service.findAll(pageable), SensorDto::from));
+    }
+
+    // SHARED / OWNER
+
     @GetMapping("/{id}")
-    public SensorDto getById(@PathVariable Long id) {
-        return SensorDto.from(service.findById(id));
+    @PreAuthorize("hasRole('ADMIN') || @sensorService.isOwner(#id, principal)")
+    public ResponseEntity<SensorDto> getById(@PathVariable Long id,
+                                         @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
+        return ResponseEntity.ok(SensorDto.from(service.findById(id)));
     }
 
     @GetMapping(params = "serial")
-    public ResponseEntity<SensorDto> getBySerial(@RequestParam String serial) {
-        Sensor sensor = service.findBySerial(serial);
-        return ResponseEntity.ok(SensorDto.from(sensor));
-    }
-
-    @GetMapping
-    public Page<SensorDto> listAll(Pageable pageable) {
-        return DTOMapper.mapPage(service.findAll(pageable), SensorDto::from);
+    @PreAuthorize("hasRole('ADMIN') || @sensorService.isOwnerBySerial(#serial, principal)")
+    public ResponseEntity<SensorDto> getBySerial(@RequestParam String serial,
+                                              @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
+        return ResponseEntity.ok(SensorDto.from(service.findBySerial(serial)));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<SensorDto> update(
-            @PathVariable Long id,
-            @Valid @RequestBody SensorUpdateDto dto
-    ) {
-        var updated = service.update(id, dto);
-        return ResponseEntity.ok(SensorDto.from(updated));
+    @PreAuthorize("hasRole('ADMIN') || @sensorService.isOwner(#id, principal)")
+    public ResponseEntity<SensorDto> updateById(@PathVariable Long id,
+                                            @Valid @RequestBody SensorUpdateDto dto,
+                                            @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
+        return ResponseEntity.ok(SensorDto.from(service.update(id, dto)));
     }
-
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN') || @sensorService.isOwner(#id, principal)")
+    public ResponseEntity<Void> deleteById(@PathVariable Long id,
+                                       @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
         service.delete(id);
+        return ResponseEntity.noContent().build();
     }
+
+    // USER
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<SensorDto>> mySensors(@AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
+        List<SensorDto> dtos = service.findByOwner(principal.getId())
+                .stream().map(SensorDto::from).toList();
+        return ResponseEntity.ok(dtos);
+    }
+
 }

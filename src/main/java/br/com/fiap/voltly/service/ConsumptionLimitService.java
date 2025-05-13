@@ -24,8 +24,8 @@ import java.util.List;
 public class ConsumptionLimitService {
 
     private final ConsumptionLimitRepository repository;
-    private final EquipmentRepository equipmentRepo;
-    private final EnergyReadingRepository readingRepo;
+    private final EquipmentRepository        equipmentRepo;
+    private final EnergyReadingRepository    readingRepo;
 
 
     public Page<ConsumptionLimit> findAll(Pageable pageable) {
@@ -40,6 +40,10 @@ public class ConsumptionLimitService {
     public ConsumptionLimit findByEquipment(Long equipmentId) {
         return repository.findByEquipmentId(equipmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("ConsumptionLimit", equipmentId));
+    }
+
+    public List<ConsumptionLimit> findAllByOwner(Long ownerId) {
+        return repository.findAllByEquipmentOwnerId(ownerId);
     }
 
     @Transactional

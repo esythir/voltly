@@ -39,9 +39,8 @@ public class UserService {
     }
 
     public User findByEmail(String email) {
-        User user = userRepository.findByEmail(email);
-        if (user == null) throw new UserNotFoundException("email", email);
-        return user;
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("email", email));
     }
 
     public List<User> findByBirthDateBetween(LocalDate start, LocalDate end) {

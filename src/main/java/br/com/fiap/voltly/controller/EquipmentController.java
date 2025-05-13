@@ -10,9 +10,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/equipments")
@@ -21,54 +24,79 @@ public class EquipmentController {
 
     private final EquipmentService service;
 
-    @PostMapping
-    public ResponseEntity<EquipmentDto> create(@Valid @RequestBody EquipmentCreateDto dto) {
-        var entity = dto.toModel();
-        var saved  = service.save(entity);
-        return ResponseEntity
-                .created(URI.create("/api/equipments/" + saved.getId()))
-                .body(EquipmentDto.from(saved));
-    }
+    // ADMIN
 
     @GetMapping
-    public ResponseEntity<Page<EquipmentDto>> list(Pageable pageable) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Page<EquipmentDto>> listAllPageable(Pageable pageable) {
         return ResponseEntity.ok(
                 DTOMapper.mapPage(service.findAll(pageable), EquipmentDto::from));
     }
 
+    // SHARED / OWNER
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN') || principal.id == #dto.ownerId()")
+    public ResponseEntity<EquipmentDto> createEquipment(@Valid @RequestBody EquipmentCreateDto dto,
+                                               @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
+        Equipment saved = service.save(dto.toModel());
+        return ResponseEntity.created(URI.create("/api/equipments/" + saved.getId()))
+                .body(EquipmentDto.from(saved));
+    }
+
     @GetMapping("/{id}")
-    public ResponseEntity<EquipmentDto> get(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN') || @equipmentService.isOwner(#id, principal)")
+    public ResponseEntity<EquipmentDto> getById(@PathVariable Long id,
+                                            @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
         return ResponseEntity.ok(EquipmentDto.from(service.findById(id)));
     }
 
     @GetMapping(params = "name")
-    public ResponseEntity<EquipmentDto> byName(@RequestParam String name) {
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<EquipmentDto> getByName(@RequestParam String name) {
         return ResponseEntity.ok(EquipmentDto.from(service.findByName(name)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<EquipmentDto> update(
-            @PathVariable Long id,
-            @Valid @RequestBody Equipment equipment
-    ) {
-        return ResponseEntity.ok(EquipmentDto.from(service.update(id, equipment)));
+    @PreAuthorize("hasRole('ADMIN') || @equipmentService.isOwner(#id, principal)")
+    public ResponseEntity<EquipmentDto> updateById(@PathVariable Long id,
+                                               @Valid @RequestBody Equipment dto,
+                                               @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
+        return ResponseEntity.ok(EquipmentDto.from(service.update(id, dto)));
     }
 
     @PatchMapping("/{id}/activate")
-    public ResponseEntity<Void> activate(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN') || @equipmentService.isOwner(#id, principal)")
+    public ResponseEntity<Void> activate(@PathVariable Long id,
+                                         @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
         service.activate(id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<Void> deactivate(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN') || @equipmentService.isOwner(#id, principal)")
+    public ResponseEntity<Void> deactivate(@PathVariable Long id,
+                                           @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
         service.deactivate(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    @PreAuthorize("hasRole('ADMIN') || @equipmentService.isOwner(#id, principal)")
+    public ResponseEntity<Void> deleteById(@PathVariable Long id,
+                                       @AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
+
+    // USER
+
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<List<EquipmentDto>> myEquipments(@AuthenticationPrincipal br.com.fiap.voltly.domain.model.User principal) {
+        var dtos = service.findByOwner(principal.getId())
+                .stream().map(EquipmentDto::from).toList();
+        return ResponseEntity.ok(dtos);
+    }
+
 }

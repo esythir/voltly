@@ -6,6 +6,9 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface AlertRepository extends JpaRepository<Alert, Long> {
+
     List<Alert> findAllByAlertDate(LocalDate alertDate);
+
     List<Alert> findAllByAlertDateAndEquipmentId(LocalDate alertDate, Long equipmentId);
+
 }

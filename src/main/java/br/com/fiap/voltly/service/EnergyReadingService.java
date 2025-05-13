@@ -24,6 +24,10 @@ public class EnergyReadingService {
         return repository.save(reading);
     }
 
+    public List<EnergyReading> findAllForOwner(Long ownerId) {
+        return repository.findAllForOwner(ownerId);
+    }
+
     public EnergyReading findById(Long id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("EnergyReading", id));
@@ -47,4 +51,5 @@ public class EnergyReadingService {
     public void delete(Long id) {
         repository.delete(findById(id));
     }
+
 }

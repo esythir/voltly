@@ -36,6 +36,10 @@ public class AutomaticActionService {
         return repository.findByEquipmentId(equipmentId);
     }
 
+    public List<AutomaticAction> findAllByOwner(Long ownerId) {
+        return repository.findAllByEquipmentOwnerId(ownerId);
+    }
+
     @Transactional
     public void delete(Long id) {
         repository.delete(findById(id));

@@ -25,16 +25,24 @@ public interface EnergyReadingRepository extends JpaRepository<EnergyReading, Lo
     );
 
     @Query("""
-      SELECT COALESCE(SUM(r.powerKw), 0) 
-        FROM EnergyReading r 
-       WHERE r.sensor.equipment.id = :equipmentId 
-         AND r.takenAt >= :start 
+      SELECT COALESCE(SUM(r.powerKw), 0)\s
+        FROM EnergyReading r\s
+       WHERE r.sensor.equipment.id = :equipmentId\s
+         AND r.takenAt >= :start\s
          AND r.takenAt < :end
-    """)
+   \s""")
     Double sumPowerKwByEquipmentAndTakenAtBetween(
             @Param("equipmentId") Long equipmentId,
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end);
+
+    @Query("""
+     SELECT r
+       FROM EnergyReading r
+      WHERE r.sensor.equipment.owner.id = :ownerId
+    """)
+    List<EnergyReading> findAllForOwner(@Param("ownerId") Long ownerId);
+
 
     void deleteBySensorId(Long sensorId);
 }

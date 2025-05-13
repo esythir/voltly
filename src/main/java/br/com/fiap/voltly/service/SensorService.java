@@ -11,6 +11,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -37,6 +39,11 @@ public class SensorService {
                 .orElseThrow(() -> new ResourceNotFoundException("Sensor", serial));
     }
 
+    public List<Sensor> findByOwner(Long ownerId) {
+        return repository.findByEquipmentOwnerId(ownerId);
+    }
+
+
     @Transactional
     public Sensor update(Long id, SensorUpdateDto dto) {
         Sensor existing = findById(id);
@@ -49,4 +56,17 @@ public class SensorService {
     public void delete(Long id) {
         repository.delete(findById(id));
     }
+
+    public boolean isOwner(Long sensorId, br.com.fiap.voltly.domain.model.User principal) {
+        return repository.findById(sensorId)
+                .map(s -> s.getEquipment().getOwner().getId().equals(principal.getId()))
+                .orElse(false);
+    }
+
+    public boolean isOwnerBySerial(String serial, br.com.fiap.voltly.domain.model.User principal) {
+        return repository.findBySerialNumber(serial)
+                .map(s -> s.getEquipment().getOwner().getId().equals(principal.getId()))
+                .orElse(false);
+    }
+
 }

@@ -1,17 +1,17 @@
 package br.com.fiap.voltly.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api")
 public class GreetingController {
 
     @GetMapping
-    public String greeting() {
-        return "Welcome to Voltly API!";
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<String> greeting() {
+        return ResponseEntity.ok("Welcome to Voltly API!");
     }
 
 }
-

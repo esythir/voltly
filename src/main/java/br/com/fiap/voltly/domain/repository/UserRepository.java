@@ -7,10 +7,11 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-    public User findByEmail(String email);
+    Optional<User> findByEmail(String email);
 
     public List<User> findByBirthDateBetween(LocalDate birthDateAfter, LocalDate birthDateBefore);
 
@@ -20,4 +21,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
          WHERE LOWER(u.name) LIKE LOWER(CONCAT('%', :namePart, '%'))
    \s""")
     List<User> findByNameContainingIgnoreCase(@Param("namePart") String namePart);
+
 }

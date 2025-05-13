@@ -21,9 +21,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DailyReportService {
 
-    private final EquipmentRepository equipmentRepo;
+    private final EquipmentRepository     equipmentRepo;
     private final EnergyReadingRepository readingRepo;
-    private final DailyReportRepository reportRepo;
+    private final DailyReportRepository   reportRepo;
 
     @Transactional
     public List<DailyReport> generateDailyConsumptionReport(LocalDate date) {

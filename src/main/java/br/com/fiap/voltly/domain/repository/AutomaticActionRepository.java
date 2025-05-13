@@ -8,5 +8,9 @@ import java.util.List;
 public interface AutomaticActionRepository extends JpaRepository<AutomaticAction, Long> {
 
     List<AutomaticAction> findByEquipmentId(Long equipmentId);
+
     void deleteByEquipmentId(Long equipmentId);
+
+    List<AutomaticAction> findAllByEquipmentOwnerId(Long ownerId);
+
 }

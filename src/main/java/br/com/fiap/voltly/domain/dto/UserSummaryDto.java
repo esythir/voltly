@@ -1,6 +1,7 @@
 package br.com.fiap.voltly.domain.dto;
 
 import br.com.fiap.voltly.domain.model.User;
+import jakarta.websocket.Endpoint;
 
 import java.time.LocalDate;
 
