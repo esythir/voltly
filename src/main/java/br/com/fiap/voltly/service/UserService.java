@@ -7,6 +7,8 @@ import br.com.fiap.voltly.exception.InvalidUserDataException;
 import br.com.fiap.voltly.exception.UserDeactivatedException;
 import br.com.fiap.voltly.exception.UserEmailAlreadyExistsException;
 import br.com.fiap.voltly.exception.UserNotFoundException;
+import br.com.fiap.voltly.utils.ValidationUtil;
+import br.com.fiap.voltly.utils.UserValidator;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,14 +29,8 @@ public class UserService {
 
     @Transactional
     public User save(User user) {
-        // Check if email already exists
-        userRepository.findByEmail(user.getEmail())
-                .ifPresent(existingUser -> {
-                    throw new UserEmailAlreadyExistsException(user.getEmail());
-                });
-                
-        // Validate user data
-        validateUserData(user);
+        // Validate the new user
+        UserValidator.validateNewUser(userRepository, user);
         
         return userRepository.save(user);
     }
@@ -49,57 +45,57 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException(id));
                 
-        if (!user.getIsActive()) {
-            throw new UserDeactivatedException(id);
-        }
+        // Validate user is active
+        UserValidator.validateUserActive(user);
         
         return user;
     }
 
     public User findByEmail(String email) {
+        // Validate email format
+        ValidationUtil.validateEmail(email);
+        
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("email", email));
                 
-        if (!user.getIsActive()) {
-            throw new UserDeactivatedException(email);
-        }
+        // Validate user is active
+        UserValidator.validateUserActive(user);
         
         return user;
     }
 
     public List<User> findByBirthDateBetween(LocalDate start, LocalDate end) {
-        if (start.isAfter(end)) {
-            throw new InvalidUserDataException("birthDate", "Start date must be before end date");
-        }
+        // Validate date range
+        ValidationUtil.validateDateRange(start, end);
+        
         return userRepository.findByBirthDateBetween(start, end);
     }
 
     public List<User> searchByName(String namePart) {
-        if (namePart == null || namePart.trim().isEmpty()) {
-            throw new InvalidUserDataException("name", "Search term cannot be empty");
-        }
+        // Validate search term
+        ValidationUtil.validateSearchTerm(namePart, "name");
+        
         return userRepository.findByNameContainingIgnoreCase(namePart);
     }
 
     @Transactional
     public User update(Long id, User updated) {
-        User existing = findById(id);
+        // Verify the user exists
+        User existing = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
         
-        // Check if email is being changed and if it's already taken
-        if (!existing.getEmail().equals(updated.getEmail())) {
-            userRepository.findByEmail(updated.getEmail())
-                    .ifPresent(existingUser -> {
-                        throw new UserEmailAlreadyExistsException(updated.getEmail());
-                    });
-        }
+        // Validate user is active
+        UserValidator.validateUserActive(existing);
         
-        // Validate updated user data
-        validateUserData(updated);
+        // Validate the updated user data (including email uniqueness)
+        UserValidator.validateUserUpdate(userRepository, updated, id);
         
+        // Update the fields
         existing.setName(updated.getName());
         existing.setEmail(updated.getEmail());
         existing.setPassword(updated.getPassword());
         existing.setBirthDate(updated.getBirthDate());
+        
         return userRepository.save(existing);
     }
 
@@ -119,28 +115,8 @@ public class UserService {
 
     @Transactional
     public void delete(Long id) {
-        userRepository.delete(findById(id));
-    }
-    
-    private void validateUserData(User user) {
-        if (user.getName() == null || user.getName().trim().isEmpty()) {
-            throw new InvalidUserDataException("name", "Name cannot be empty");
-        }
-        
-        if (user.getEmail() == null || user.getEmail().trim().isEmpty()) {
-            throw new InvalidUserDataException("email", "Email cannot be empty");
-        }
-        
-        if (user.getPassword() == null || user.getPassword().trim().isEmpty()) {
-            throw new InvalidUserDataException("password", "Password cannot be empty");
-        }
-        
-        if (user.getBirthDate() == null) {
-            throw new InvalidUserDataException("birthDate", "Birth date cannot be null");
-        }
-        
-        if (user.getBirthDate().isAfter(LocalDate.now())) {
-            throw new InvalidUserDataException("birthDate", "Birth date cannot be in the future");
-        }
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException(id));
+        userRepository.delete(user);
     }
 }
