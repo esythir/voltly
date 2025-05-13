@@ -9,10 +9,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.time.YearMonth;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/limits")
@@ -51,6 +55,22 @@ public class ConsumptionLimitController {
             @Valid @RequestBody ConsumptionLimit limit
     ) {
         return ResponseEntity.ok(ConsumptionLimitDto.from(service.update(id, limit)));
+    }
+
+    @PostMapping("/monthly-recalculation")
+    public ResponseEntity<List<ConsumptionLimitDto>> recalculateMonthly(
+            @RequestParam(value = "yearMonth", required = false)
+            @DateTimeFormat(pattern = "yyyy-MM") YearMonth yearMonth
+    ) {
+        var limits = service.recalculateMonthlyLimits(yearMonth);
+        var dtos   = limits.stream()
+                .map(ConsumptionLimitDto::from)
+                .collect(Collectors.toList());
+
+        YearMonth ym = (yearMonth != null ? yearMonth : YearMonth.now().minusMonths(1));
+        URI uri = URI.create("/api/limits/monthly-recalculation?yearMonth=" + ym);
+
+        return ResponseEntity.created(uri).body(dtos);
     }
 
     @DeleteMapping("/{id}")
