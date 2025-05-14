@@ -1,6 +1,5 @@
 package br.com.fiap.voltly.utils;
 
-import br.com.fiap.voltly.domain.model.User;
 import br.com.fiap.voltly.exception.InvalidUserDataException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -10,33 +9,30 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/**
+ * Utility class for general validation operations
+ * This class focuses on basic validation that doesn't require database access
+ */
 public final class ValidationUtil {
     private ValidationUtil() {}
 
     // Regular expression for validating email
-    private static final Pattern EMAIL_PATTERN = 
+    public static final Pattern EMAIL_PATTERN = 
         Pattern.compile("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$");
     
-    // Password requirement: minimum 8 chars, at least one letter and one number
-    private static final Pattern PASSWORD_PATTERN = 
-        Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$");
+    // Basic password requirement: minimum 8 chars, at least one letter and one number
+    public static final Pattern PASSWORD_PATTERN = 
+        Pattern.compile("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&#]{8,}$");
     
+    /**
+     * Converts validation errors to a map for API responses
+     */
     public static Map<String,String> toErrorMap(BindingResult result){
         Map<String,String> errors = new HashMap<>();
         for (FieldError fe : result.getFieldErrors()) {
             errors.put(fe.getField(), fe.getDefaultMessage());
         }
         return errors;
-    }
-    
-    /**
-     * Validates all user fields and throws InvalidUserDataException if any validation fails
-     */
-    public static void validateUser(User user) {
-        validateName(user.getName());
-        validateEmail(user.getEmail());
-        validatePassword(user.getPassword());
-        validateBirthDate(user.getBirthDate());
     }
     
     /**
@@ -74,7 +70,7 @@ public final class ValidationUtil {
     }
     
     /**
-     * Validates user's password strength
+     * Validates user's basic password requirements
      */
     public static void validatePassword(String password) {
         if (password == null || password.trim().isEmpty()) {

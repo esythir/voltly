@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 
 /**
  * Utility class for user-specific validations that require repository access
+ * or combine multiple validation rules
  */
 public final class UserValidator {
     
@@ -35,6 +36,10 @@ public final class UserValidator {
      * Checks if the provided email already exists in database
      */
     public static void validateEmailUniqueness(UserRepository repository, String email) {
+        // First validate the email format
+        ValidationUtil.validateEmail(email);
+        
+        // Then check for uniqueness
         repository.findByEmail(email)
             .ifPresent(existingUser -> {
                 throw new UserEmailAlreadyExistsException(email);
@@ -46,6 +51,10 @@ public final class UserValidator {
      * (useful for update operations)
      */
     public static void validateEmailUniquenessExcept(UserRepository repository, String email, Long exceptUserId) {
+        // First validate the email format
+        ValidationUtil.validateEmail(email);
+        
+        // Then check for uniqueness
         Optional<User> existingUser = repository.findByEmail(email);
         
         if (existingUser.isPresent() && !existingUser.get().getId().equals(exceptUserId)) {
@@ -68,20 +77,13 @@ public final class UserValidator {
     
     /**
      * Validates if a password meets strong password requirements
+     * This extends the basic password validation with additional security checks
      */
     public static void validateStrongPassword(String password) {
-        if (password == null || password.trim().isEmpty()) {
-            throw new InvalidUserDataException("password", "Password cannot be empty");
-        }
+        // First do basic validation
+        ValidationUtil.validatePassword(password);
         
-        if (password.length() < 8) {
-            throw new InvalidUserDataException("password", "Password must have at least 8 characters");
-        }
-        
-        if (password.length() > 100) {
-            throw new InvalidUserDataException("password", "Password cannot exceed 100 characters");
-        }
-        
+        // Then add additional strong password requirements
         if (!STRONG_PASSWORD_PATTERN.matcher(password).matches()) {
             throw new InvalidUserDataException(
                 "password", 
@@ -113,27 +115,42 @@ public final class UserValidator {
     }
     
     /**
-     * Performs complete validation for new user including strong password check
+     * Validates all user fields
      */
-    public static void validateNewUserWithStrongPassword(UserRepository repository, User user) {
-        // Validate name, email and birth date
+    public static void validateUserFields(User user) {
         ValidationUtil.validateName(user.getName());
         ValidationUtil.validateEmail(user.getEmail());
+        ValidationUtil.validatePassword(user.getPassword());
         ValidationUtil.validateBirthDate(user.getBirthDate());
-        
-        // Validate strong password
+    }
+    
+    /**
+     * Validates all user fields with strong password requirements
+     */
+    public static void validateUserFieldsWithStrongPassword(User user) {
+        ValidationUtil.validateName(user.getName());
+        ValidationUtil.validateEmail(user.getEmail());
         validateStrongPassword(user.getPassword());
-        
-        // Validate email uniqueness
-        validateEmailUniqueness(repository, user.getEmail());
+        ValidationUtil.validateBirthDate(user.getBirthDate());
     }
     
     /**
      * Performs complete validation for new user
      */
     public static void validateNewUser(UserRepository repository, User user) {
-        // Validate basic user data
-        ValidationUtil.validateUser(user);
+        // Validate all user fields
+        validateUserFields(user);
+        
+        // Validate email uniqueness
+        validateEmailUniqueness(repository, user.getEmail());
+    }
+    
+    /**
+     * Performs complete validation for new user including strong password check
+     */
+    public static void validateNewUserWithStrongPassword(UserRepository repository, User user) {
+        // Validate all user fields with strong password
+        validateUserFieldsWithStrongPassword(user);
         
         // Validate email uniqueness
         validateEmailUniqueness(repository, user.getEmail());
@@ -143,8 +160,8 @@ public final class UserValidator {
      * Performs complete validation for user updates
      */
     public static void validateUserUpdate(UserRepository repository, User user, Long userId) {
-        // Validate basic user data
-        ValidationUtil.validateUser(user);
+        // Validate all user fields
+        validateUserFields(user);
         
         // Validate email uniqueness (excluding the current user)
         validateEmailUniquenessExcept(repository, user.getEmail(), userId);
@@ -154,13 +171,8 @@ public final class UserValidator {
      * Performs complete validation for user updates including strong password validation
      */
     public static void validateUserUpdateWithStrongPassword(UserRepository repository, User user, Long userId) {
-        // Validate name, email and birth date
-        ValidationUtil.validateName(user.getName());
-        ValidationUtil.validateEmail(user.getEmail());
-        ValidationUtil.validateBirthDate(user.getBirthDate());
-        
-        // Validate strong password
-        validateStrongPassword(user.getPassword());
+        // Validate all user fields with strong password
+        validateUserFieldsWithStrongPassword(user);
         
         // Validate email uniqueness (excluding the current user)
         validateEmailUniquenessExcept(repository, user.getEmail(), userId);
