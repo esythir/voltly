@@ -8,6 +8,7 @@ import br.com.fiap.voltly.domain.repository.EnergyReadingRepository;
 import br.com.fiap.voltly.domain.repository.EquipmentRepository;
 import br.com.fiap.voltly.enums.EfficiencyRating;
 import br.com.fiap.voltly.utils.CarbonCalculatorUtil;
+import br.com.fiap.voltly.utils.ParameterValidatorUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +28,7 @@ public class DailyReportService {
 
     @Transactional
     public List<DailyReport> generateDailyConsumptionReport(LocalDate date) {
+        ParameterValidatorUtil.assertDateNotFuture(date, "date");
         LocalDateTime start = date.atStartOfDay();
         LocalDateTime end   = date.plusDays(1).atStartOfDay();
 

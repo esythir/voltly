@@ -4,6 +4,7 @@ import br.com.fiap.voltly.domain.dto.SensorUpdateDto;
 import br.com.fiap.voltly.domain.model.Equipment;
 import br.com.fiap.voltly.domain.model.Sensor;
 import br.com.fiap.voltly.domain.repository.SensorRepository;
+import br.com.fiap.voltly.exception.DuplicateResourceException;
 import br.com.fiap.voltly.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -22,6 +23,10 @@ public class SensorService {
 
     @Transactional
     public Sensor save(Sensor sensor) {
+        if (repository.findBySerialNumber(sensor.getSerialNumber()).isPresent()) {
+            throw new DuplicateResourceException(
+                    "Sensor", "serialNumber", sensor.getSerialNumber());
+        }
         return repository.save(sensor);
     }
 
@@ -47,6 +52,12 @@ public class SensorService {
     @Transactional
     public Sensor update(Long id, SensorUpdateDto dto) {
         Sensor existing = findById(id);
+        if (!existing.getSerialNumber().equals(dto.serialNumber()) &&
+                repository.findBySerialNumber(dto.serialNumber()).isPresent()) {
+            throw new DuplicateResourceException(
+                    "Sensor", "serialNumber", dto.serialNumber());
+        }
+
         existing.setSerialNumber(dto.serialNumber());
         existing.setType(dto.type());
         return repository.save(existing);

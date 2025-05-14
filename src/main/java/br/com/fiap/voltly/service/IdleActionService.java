@@ -5,6 +5,7 @@ import br.com.fiap.voltly.domain.model.Sensor;
 import br.com.fiap.voltly.domain.repository.AutomaticActionRepository;
 import br.com.fiap.voltly.domain.repository.EnergyReadingRepository;
 import br.com.fiap.voltly.domain.repository.SensorRepository;
+import br.com.fiap.voltly.utils.ParameterValidatorUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,12 @@ public class IdleActionService {
             int windowMinutes,
             Long equipmentId
     ) {
+        ParameterValidatorUtil.assertPositive(thresholdKw, "thresholdKw");
+        ParameterValidatorUtil.assertInRange(occupancyPercentage, 0, 100, "occupancyPercentage");
+        ParameterValidatorUtil.assertPositive(windowMinutes, "windowMinutes");
+        if (equipmentId != null) {
+            ParameterValidatorUtil.assertPositive(equipmentId, "equipmentId");
+        }
         List<Sensor> sensors = (equipmentId != null)
                 ? sensorRepository.findByEquipmentId(equipmentId)
                 : sensorRepository.findAll();

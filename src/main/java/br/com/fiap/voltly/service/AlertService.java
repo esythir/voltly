@@ -9,6 +9,7 @@ import br.com.fiap.voltly.domain.repository.EnergyReadingRepository;
 import br.com.fiap.voltly.domain.repository.EquipmentRepository;
 import br.com.fiap.voltly.exception.ResourceNotFoundException;
 import br.com.fiap.voltly.utils.NotificationService;
+import br.com.fiap.voltly.utils.ParameterValidatorUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +30,10 @@ public class AlertService {
 
     @Transactional
     public List<Alert> generateAlerts(LocalDate date, Long equipmentId) {
+        if (date != null) {
+            ParameterValidatorUtil.assertDateNotFuture(date, "date");
+        }
+
         LocalDate d = (date != null) ? date : LocalDate.now();
         LocalDateTime start = d.atStartOfDay();
         LocalDateTime end   = d.plusDays(1).atStartOfDay();

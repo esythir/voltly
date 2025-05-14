@@ -2,7 +2,9 @@ package br.com.fiap.voltly.service;
 
 import br.com.fiap.voltly.domain.model.AutomaticAction;
 import br.com.fiap.voltly.domain.repository.AutomaticActionRepository;
+import br.com.fiap.voltly.exception.InvalidParameterException;
 import br.com.fiap.voltly.exception.ResourceNotFoundException;
+import br.com.fiap.voltly.utils.BusinessValidationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +22,12 @@ public class AutomaticActionService {
 
     @Transactional
     public AutomaticAction save(AutomaticAction action) {
+        BusinessValidationUtil.assertNotNull(action.getEquipment(), "equipment");
+        BusinessValidationUtil.assertNotBlank(action.getType(), "type");
+
+        if (action.getDetails() != null && action.getDetails().length() > 500) {
+            throw new InvalidParameterException("details", "max length is 500 chars");
+        }
         return repository.save(action);
     }
 

@@ -53,6 +53,7 @@ public class UserService {
 
     @Transactional
     public User update(Long id, User updated) {
+        validateUser(updated, false);
         User existing = findById(id);
         existing.setName(updated.getName());
         existing.setEmail(updated.getEmail());
@@ -77,5 +78,17 @@ public class UserService {
     public void delete(Long id) {
         userRepository.delete(findById(id));
     }
+
+    private void validateUser(User user, boolean checkEmailUniqueness) {
+        br.com.fiap.voltly.utils.EmailValidatorUtil.assertValid(user.getEmail());
+        br.com.fiap.voltly.utils.PasswordValidatorUtil.assertValid(user.getPassword());
+
+        if (checkEmailUniqueness &&
+                userRepository.findByEmail(user.getEmail()).isPresent()) {
+            throw new br.com.fiap.voltly.exception.DuplicateResourceException(
+                    "User", "email", user.getEmail());
+        }
+    }
+
 
 }

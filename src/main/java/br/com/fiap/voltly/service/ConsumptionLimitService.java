@@ -6,6 +6,7 @@ import br.com.fiap.voltly.domain.repository.ConsumptionLimitRepository;
 import br.com.fiap.voltly.domain.repository.EnergyReadingRepository;
 import br.com.fiap.voltly.domain.repository.EquipmentRepository;
 import br.com.fiap.voltly.exception.ResourceNotFoundException;
+import br.com.fiap.voltly.utils.ParameterValidatorUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

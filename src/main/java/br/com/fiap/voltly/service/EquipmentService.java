@@ -3,6 +3,7 @@ package br.com.fiap.voltly.service;
 import br.com.fiap.voltly.domain.model.Equipment;
 import br.com.fiap.voltly.domain.model.User;
 import br.com.fiap.voltly.domain.repository.*;
+import br.com.fiap.voltly.exception.DuplicateResourceException;
 import br.com.fiap.voltly.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

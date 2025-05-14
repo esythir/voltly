@@ -1,6 +1,7 @@
 package br.com.fiap.voltly.domain.dto;
 
 import br.com.fiap.voltly.domain.model.User;
+import br.com.fiap.voltly.domain.model.UserRole;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -22,7 +23,9 @@ public record UserCreateDto(
         String password,
 
         @NotNull(message = "Birth date is required")
-        LocalDate birthDate
+        LocalDate birthDate,
+
+        UserRole role
 ) {
     public User toModel() {
         return User.builder()
@@ -30,6 +33,7 @@ public record UserCreateDto(
                 .email(email)
                 .password(password)
                 .birthDate(birthDate)
+                .role(role != null ? role : UserRole.USER)
                 .build();
     }
 }

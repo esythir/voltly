@@ -2,6 +2,7 @@ package br.com.fiap.voltly.service;
 
 import br.com.fiap.voltly.domain.model.EnergyReading;
 import br.com.fiap.voltly.domain.repository.EnergyReadingRepository;
+import br.com.fiap.voltly.exception.InvalidParameterException;
 import br.com.fiap.voltly.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,6 +22,9 @@ public class EnergyReadingService {
 
     @Transactional
     public EnergyReading save(EnergyReading reading) {
+        if (reading.getTakenAt().isAfter(java.time.LocalDateTime.now())) {
+            throw new InvalidParameterException("takenAt", "cannot be in the future");
+        }
         return repository.save(reading);
     }
 
@@ -44,6 +48,9 @@ public class EnergyReadingService {
     public List<EnergyReading> forSensorInWindow(Long sensorId,
                                                  LocalDateTime start,
                                                  LocalDateTime end) {
+        if (start.isAfter(end)) {
+            throw new InvalidParameterException("start/end", "start must be before end");
+        }
         return repository.findBySensorIdAndTakenAtBetween(sensorId, start, end);
     }
 
