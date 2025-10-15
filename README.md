@@ -40,6 +40,10 @@ A API permite que usuários autenticados administrem equipamentos, sensores e li
 
 ---
 
+## Hub Docker
+
+https://hub.docker.com/r/lulii/voltly-app
+
 ## Como Executar
 
 ### Com Spring Boot Local
