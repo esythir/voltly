@@ -1,0 +1,83 @@
+services:
+  # Banco de dados PostgreSQL para staging
+  postgres:
+    image: postgres:15-alpine
+    container_name: voltly-postgres-staging
+    environment:
+      POSTGRES_DB: voltly_staging
+      POSTGRES_USER: voltly_staging
+      POSTGRES_PASSWORD: staging_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data_staging:/var/lib/postgresql/data
+    networks:
+      - voltly-network-staging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voltly_staging -d voltly_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Aplicação Voltly para staging
+  voltly:
+    image: voltly:latest
+    container_name: voltly-app-staging
+    ports:
+      - "8081:8080"
+    environment:
+      # Configurações do banco de dados
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/voltly_staging
+      SPRING_DATASOURCE_USERNAME: voltly_staging
+      SPRING_DATASOURCE_PASSWORD: staging_password
+      # Configurações da aplicação
+      SPRING_PROFILES_ACTIVE: staging
+      SERVER_PORT: 8080
+      # Configurações de segurança
+      SECURITY_JWT_SECRET: staging.jwt.secret.key
+      # Configurações do Flyway
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: true
+      # Configurações do Hibernate
+      SPRING_JPA_SHOW_SQL: true
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: true
+      # Configurações do HikariCP
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
+      # Configurações de logging
+      LOGGING_LEVEL_ROOT: DEBUG
+      LOGGING_LEVEL_BR_COM_FIAP_VOLTLY: TRACE
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - voltly-network-staging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Nginx como proxy reverso para staging
+  nginx:
+    image: nginx:alpine
+    container_name: voltly-nginx-staging
+    ports:
+      - "8082:80"
+    volumes:
+      - ./nginx/nginx.staging.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - voltly
+    networks:
+      - voltly-network-staging
+    restart: unless-stopped
+
+volumes:
+  postgres_data_staging:
+    driver: local
+
+networks:
+  voltly-network-staging:
+    driver: bridge

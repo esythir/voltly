@@ -1,12 +1,86 @@
 services:
+  # Banco de dados PostgreSQL para desenvolvimento local
+  postgres:
+    image: postgres:15-alpine
+    container_name: voltly-postgres
+    environment:
+      POSTGRES_DB: voltly
+      POSTGRES_USER: voltly_user
+      POSTGRES_PASSWORD: voltly_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - voltly-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U voltly_user -d voltly"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Aplicação Voltly
   voltly:
-    build: .
-    image: voltly:1.0
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    image: voltly:latest
+    container_name: voltly-app
     ports:
       - "8080:8080"
-    env_file: .env
     environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      # Configurações do banco de dados
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/voltly
+      SPRING_DATASOURCE_USERNAME: voltly_user
+      SPRING_DATASOURCE_PASSWORD: voltly_password
+      # Configurações da aplicação
+      SPRING_PROFILES_ACTIVE: docker
+      SERVER_PORT: 8080
+      # Configurações de segurança
+      SECURITY_JWT_SECRET: my.super.secret.jwt.passphrase.for.docker
+      # Configurações do Flyway
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: true
+      # Configurações do Hibernate
+      SPRING_JPA_SHOW_SQL: false
+      SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL: false
+      # Configurações do HikariCP
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - voltly-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Nginx como proxy reverso (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: voltly-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - voltly
+    networks:
+      - voltly-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  voltly-network:
+    driver: bridge
